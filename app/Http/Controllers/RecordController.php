@@ -10,9 +10,27 @@ class RecordController extends Controller
 {
     public function index(Request $request)
     {
-        $index = $request->input("index", 0);
+        $user = Auth::user();
 
-        $records = Record::skip($index * 10)->take(10)->get();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $role = $user->role;
+
+        $perPage = 10;
+
+        if ($role == 'manager') {
+            $records = Record::whereHas('user', function ($query) use ($user) {
+                $query->where('manager_id', $user->id);
+            })
+                ->with('user')
+                ->paginate($perPage);
+        } elseif ($role == 'employee') {
+            $records = Record::where('user_id', $user->id)->paginate($perPage);
+        } else {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
 
         return response()->json($records, 200);
     }
@@ -58,33 +76,19 @@ class RecordController extends Controller
         return response()->json($record, 200);
     }
 
-    public function admin_delete(Request $request, $id)
+    public function delete(Request $request, $id)
     {
         $record = Record::find($id);
+        $user = Auth::user();
 
         if (!$record) {
             return response()->json(['message' => 'Record not found.'], 404);
         }
 
-        if ($record->image && file_exists(storage_path('app/' . $record->image))) {
-            unlink(storage_path('app/' . $record->image));
-        }
-
-        $record->delete();
-
-        return response()->json(['message' => 'Record deleted successfully.'], 200);
-    }
-
-    public function user_delete(Request $request, $id)
-    {
-        $record = Record::find($id);
-
-        if (!$record) {
-            return response()->json(['message' => 'Record not found.'], 404);
-        }
-
-        if ($record->user_id != Auth::id())
+        if ($user->role != 'manager' && $record->user_id != $user->id)
             return response()->json("This is not your record", 403);
+        else if ($user->role == 'manager' && $record->user->manager_id != $user->id)
+            return response()->json("This is not record of your employee", 403);
 
         if ($record->image && file_exists(storage_path('app/' . $record->image))) {
             unlink(storage_path('app/' . $record->image));
@@ -94,6 +98,4 @@ class RecordController extends Controller
 
         return response()->json(['message' => 'Record deleted successfully.'], 200);
     }
-
-
 }

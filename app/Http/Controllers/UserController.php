@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Notifications\EmployeeCreated;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -23,6 +24,7 @@ class UserController extends Controller
             $employee = User::create([
                 'email' => $request->email,
                 'password' => bcrypt($request->password),
+                'manager_id' => Auth::user()->id,
                 'role' => 'employee'
             ]);
             $employee->notify(new EmployeeCreated());

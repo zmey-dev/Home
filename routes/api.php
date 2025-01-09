@@ -13,15 +13,16 @@ Route::middleware(['auth:sanctum', 'role:manager'])->prefix('admin')->group(func
     Route::post('/user/create', [UserController::class, 'store']);
 
     Route::get('/records', [RecordController::class, 'index']);
-    Route::delete('/records/{id}', [RecordController::class, 'admin_delete']);
+    Route::delete('/records/{id}', [RecordController::class, 'delete']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
 Route::middleware(['auth:sanctum', 'role:employee'])->prefix('employee')->group(function () {
     Route::post('/records', [RecordController::class, 'store']);
+    Route::get('/records', [RecordController::class, 'index']);
     Route::post('/records/{id}', [RecordController::class, 'update']);
-    Route::delete('/records/{id}', [RecordController::class, 'user_delete']);
+    Route::delete('/records/{id}', [RecordController::class, 'delete']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
 });
