@@ -10,6 +10,11 @@ class RecordController extends Controller
 {
     public function index(Request $request)
     {
+        $data = $request->validate([
+            'category' => 'nullable|in:Full-time, Part-time, Contract, Independent contractor, Temporary, On-call, Volunteer',
+            'user_id' => 'nullable|exists:user,id'
+        ]);
+
         $user = Auth::user();
 
         if (!$user) {
@@ -23,15 +28,21 @@ class RecordController extends Controller
         if ($role == 'manager') {
             $records = Record::whereHas('user', function ($query) use ($user) {
                 $query->where('manager_id', $user->id);
-            })
-                ->with('user')
-                ->paginate($perPage);
+            });
+            if (isset($data['user_id'])) {
+                $records = $records->where('user_id', $data['user_id']);
+            }
+            $records = $records->with('user');
+
         } elseif ($role == 'employee') {
-            $records = Record::where('user_id', $user->id)->paginate($perPage);
+            $records = Record::where('user_id', $user->id);
         } else {
             return response()->json(['error' => 'Forbidden'], 403);
         }
-
+        if (isset($data['category'])) {
+            $records = $records->where('category', $data['category']);
+        }
+        $records->paginate($perPage);
         return response()->json($records, 200);
     }
 
